@@ -130,6 +130,7 @@ export default {
         this.startStop()
         this.infoText = "Раунд не пройден!"
       }
+
       if(this.isRoundComplete()) {
         if(this.isWinGame()){
           this.infoText = "Победа!!!"
