@@ -1,4 +1,4 @@
-# 2_game
+# Simon says
 
 ## Project setup
 ```
