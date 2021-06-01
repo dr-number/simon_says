@@ -18,7 +18,7 @@
       </label>
     </div>
     <button class="round" v-on:click="startStop">{{ buttonText }}</button>
-    <b class="round">Уровень: {{ infoDifficulty }}. Раунд: {{ round }} из {{this.roundFinish}}</b>
+    <b class="round">Уровень: {{ infoDifficulty }} Раунд: {{ round }} из {{this.roundFinish}}</b>
     <p class="round">Колличество отгаданных чисел раунда: {{countUserInput}} из {{ round }}</p>
     <b :class="'info ' + statusInfo">{{ infoText }}</b>
   </div>
