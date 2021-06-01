@@ -133,7 +133,7 @@ export default {
 
       if(this.isRoundComplete()) {
         if(this.isWinGame()){
-          this.infoText = "Победа!!!"
+          this.infoText = "Победа!!!!"
           alert(this.infoText)
           this.startStop()
         }
