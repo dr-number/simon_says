@@ -1,26 +1,26 @@
 <template>
   <div id="app">
     <div class="game-field">
-      <span :class="blueActive" v-on:click="isInputData(1)"></span>
-      <span :class="redActive" v-on:click="isInputData(2)"></span>
-      <span :class="yellowActive" v-on:click="isInputData(3)"></span>
-      <span :class="greenActive" v-on:click="isInputData(4)"></span>
+      <span :class="'blue ' + blueActive" v-on:click="isInputData(1)"></span>
+      <span :class="'red ' + redActive" v-on:click="isInputData(2)"></span>
+      <span :class="'yellow ' + yellowActive" v-on:click="isInputData(3)"></span>
+      <span :class="'green ' + greenActive" v-on:click="isInputData(4)"></span>
     </div>
-    <div class="set-level">
+    <div v-if="this.round === 0" class="set-level">
       <label for="easy">
-        <input name="level" id="easy" value="easy" type="radio" v-model="level"> Легко
+        <input name="level" id="easy" value="easy" type="radio" v-model="difficulty"> Легко
       </label>
       <label for="middle">
-        <input name="level" id="middle" value="middle" type="radio" v-model="level" > Средне
+        <input name="level" id="middle" value="middle" type="radio" v-model="difficulty" > Средне
       </label>
       <label for="hard">
-        <input name="level" id="hard" value="hard" type="radio" v-model="level"> Сложно
+        <input name="level" id="hard" value="hard" type="radio" v-model="difficulty"> Сложно
       </label>
     </div>
     <button class="round" v-on:click="startStop">{{ buttonText }}</button>
-    <b class="round">Раунд: {{ round }}</b>
+    <b class="round">Уровень: {{ infoDifficulty }}. Раунд: {{ round }} из {{this.roundFinish}}</b>
     <p class="round">Колличество отгаданных чисел раунда: {{countUserInput}} из {{ round }}</p>
-    <p class="info">{{ textInfo }}</p>
+    <b :class="'info ' + statusInfo">{{ infoText }}</b>
   </div>
 </template>
 
@@ -30,39 +30,69 @@ export default {
   name: 'App',
   data() {
     return {
-      textStart: "Старт!",
-      textStop: "Стоп!",
-      textInfo: "",
+      difficulty: "easy",
+      roundFinish: 20,
 
-      level: "easy",
-      levelTime: 1.5,
-
-      isPlaying: false,
-      buttonText: "Старт!",
       round: 0,
 
+      textStart: "Старт!",
+      buttonText: "Старт!",
+      textStop: "Стоп!",
+      infoText: "",
+
+      levelTime: 1.5,
+      isPlaying: false,
+
+      soundBlue: new Audio(require('@/assets/sound1.mp3')),
+      soundRed: new Audio(require('@/assets/sound2.mp3')),
+      soundYellow: new Audio(require('@/assets/sound3.mp3')),
+      soundGreen: new Audio(require('@/assets/sound4.mp3')),
       colors: ["blue", "red", "yellow", "green"],
+
       isActiveBlue: false,
       isActiveRed: false,
       isActiveYellow: false,
       isActiveGreen: false,
       randArray: [],
-      countUserInput: 0
+      countUserInput: 0,
+
+      infoDifficulty: "",
+      isShowingColors: true
     }
   },
 
   computed: {
     blueActive: function (){
-      return this.isActiveBlue ? 'blue active-blue' : 'blue'
+      if (this.isActiveBlue){
+        this.soundBlue.play()
+        return 'active-blue';
+      }
+      return ''
     },
     redActive: function (){
-      return this.isActiveRed ? 'red active-red' : 'red'
+      if (this.isActiveRed){
+        this.soundRed.play()
+        return 'active-red'
+      }
+      return ''
     },
     yellowActive: function (){
-      return this.isActiveYellow ? 'yellow active-yellow' : 'yellow'
+      if (this.isActiveYellow){
+        this.soundYellow.play()
+        return 'active-yellow'
+      }
+      return ''
     },
     greenActive: function (){
-      return this.isActiveGreen ? 'green active-green' : 'green'
+      if (this.isActiveGreen){
+        this.soundGreen.play()
+        return 'active-green'
+      }
+      return ''
+    },
+    statusInfo: function (){
+      if(this.isWinGame() || !this.isShowingColors) return 'success'
+      return 'error'
     }
   },
 
@@ -70,7 +100,27 @@ export default {
     sleep: function (ms){
       return new Promise(resolve => setTimeout(resolve, ms));
     },
+    playMusic: function (value){
+      switch (value) {
+        case 1: this.soundBlue.play(); break;
+        case 2: this.soundRed.play(); break;
+        case 3: this.soundYellow.play(); break;
+        case 4: this.soundGreen.play(); break;
+      }
+    },
     isInputData: function (value){
+
+      //Если игра не начата или компьютер показывает цвета, то ввод пользователя блокируется
+      if(this.isShowingColors)
+        return
+
+      if(this.round === 0){
+        this.infoText = "Для начала игры нажмите Старт!"
+        return
+      }
+
+      this.playMusic(value)
+
       if(this.randArray[this.countUserInput] === value) {
         this.countUserInput += 1
         this.sleep(this.levelTime);
@@ -78,22 +128,38 @@ export default {
       }
       else {
         this.startStop()
-        this.textInfo = "Раунд не пройден! Нажмите ОК для продолжения"
+        this.infoText = "Раунд не пройден!"
       }
-
-      if(this.randArray.length === this.countUserInput) {
-        this.randArray = []
-        this.countUserInput = 0
-        this.round += 1
-        this.clearActive()
-        //alert("Раунд пройден! Нажмите ОК для продолжения")
-        this.startRound()
+      if(this.isRoundComplete()) {
+        if(this.isWinGame()){
+          this.infoText = "Победа!!!"
+          alert(this.infoText)
+          this.startStop()
+        }
+        else {
+          this.randArray = []
+          this.countUserInput = 0
+          this.round += 1
+          this.clearActive()
+          this.startRound()
+        }
       }
     },
+    isWinGame: function (){
+      return this.round === this.roundFinish
+    },
+    isRoundComplete: function (){
+      return this.randArray.length === this.countUserInput
+    },
     setLevelTime: function (){
-      if(this.level === "easy") this.levelTime = 1500
-      if(this.level === "middle") this.levelTime = 1000
-      if(this.level === "hard") this.levelTime = 400
+      if(this.difficulty === "easy") this.levelTime = 1500
+      if(this.difficulty === "middle") this.levelTime = 1000
+      if(this.difficulty === "hard") this.levelTime = 400
+    },
+    setLevelInfo: function (){
+      if(this.difficulty === "easy") this.infoDifficulty = "лёгкий"
+      if(this.difficulty === "middle") this.infoDifficulty = "средний"
+      if(this.difficulty === "hard") this.infoDifficulty = "сложный"
     },
 
     generateRandArray: function (){
@@ -111,12 +177,14 @@ export default {
     },
 
     startRound: async function (){
+      this.isShowingColors = true
+      this.infoText = "Компьютер показывает цвета. Подождите..."
       this.generateRandArray()
-
-      await this.sleep(this.levelTime);
 
       for(let i = 0; i < this.round; ++i) {
         let index = this.randArray[i]
+
+        await this.sleep(this.levelTime / 2);
 
         switch (index) {
           case 1: this.isActiveBlue = true; break;
@@ -125,20 +193,25 @@ export default {
           case 4: this.isActiveGreen = true; break;
         }
 
-        await this.sleep(this.levelTime);
+        await this.sleep(this.levelTime / 2);
         this.clearActive()
       }
+
+      this.infoText = "Можно выбирать цвета!"
+      this.isShowingColors = false
     },
     stopGame: function (){
       this.countUserInput = 0
       this.round = 0
-      this.textInfo = ""
+      this.infoText = ""
+      this.isShowingColors = true
       this.clearActive()
     },
     startGame: function (){
       this.round = 1
-      this.textInfo = ""
+      this.infoText = ""
       this.setLevelTime()
+      this.setLevelInfo()
 
       this.startRound()
     },
@@ -158,9 +231,6 @@ export default {
     }
 
   },
-  components: {
-
-  }
 }
 </script>
 
@@ -195,13 +265,19 @@ button.round{
   padding: 10px;
   font-weight: bold;
 }
+button.round:hover{
+  cursor: pointer;
+}
 .set-level label {
   display: block;
 }
-
 .game-field span:hover{
   outline-offset: -9px;
 }
+
+.success { color: green }
+.error { color: red }
+
 .blue { background-color: rgba(0, 0, 255, .4); }
 .active-blue { background-color: blue}
 .blue:hover{ outline: 9px solid blue; }
